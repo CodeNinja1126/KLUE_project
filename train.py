@@ -76,7 +76,7 @@ def train(arg):
 
   # train model
   trainer.train()
-  trainer.save_model('~/models')
+  trainer.save_model(arg.o)
 
 
 def main(arg):
@@ -85,6 +85,7 @@ def main(arg):
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Set some train option')
   parser.add_argument('-a', default='./results', type=str, help='save ckpt address (default : ./results)')
+  parser.add_argument('-o', default='./results/output', type=str, help='save ckpt address (default : ./results/output)')
   parser.add_argument('-b', default=16, type=int, help='batch size (default : 16)')
   parser.add_argument('-m', default="bert-base-multilingual-cased", type=str, 
                       help='model name (default : bert-base-multilingual-cased)')
