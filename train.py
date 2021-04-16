@@ -3,9 +3,17 @@ import os
 import pandas as pd
 import torch
 from sklearn.metrics import accuracy_score
-from transformers import AutoTokenizer, BertForSequenceClassification, Trainer, TrainingArguments, BertConfig
+# Bert 관련
+from transformers import BertForSequenceClassification, BertConfig
+# electra 관련
+from transformers import ElectraForSequenceClassification, ElectraConfig
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments, AutoConfig
 from load_data import *
 import argparse
+
+model_name_dict = {'bert' : "bert-base-multilingual-cased", 
+                  'electra1' : 'monologg/koelectra-base-v3-generator',
+                  'electra2' : 'monologg/koelectra-base-v3-discriminator'}
 
 # 평가를 위한 metrics function.
 def compute_metrics(pred):
@@ -17,10 +25,10 @@ def compute_metrics(pred):
       'accuracy': acc,
   }
 
+
 def train(arg):
   # load model and tokenizer
-  MODEL_NAME = arg.m
-  tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+  tokenizer = AutoTokenizer.from_pretrained(model_name_dict[arg.m])
 
   # load dataset
   train_dataset = load_data("/opt/ml/input/data/train/train.tsv")
@@ -39,9 +47,13 @@ def train(arg):
   device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
   # setting model hyperparameter
-  bert_config = BertConfig.from_pretrained(MODEL_NAME)
-  bert_config.num_labels = 42
-  model = BertForSequenceClassification.from_pretrained(MODEL_NAME, config=bert_config) 
+  if arg.tm == 'n':
+    config = AutoConfig.from_pretrained(model_name_dict[arg.m])
+    config.num_labels = 42
+    model = AutoModelForSequenceClassification.from_pretrained(model_name_dict[arg.m], config=config)  
+  else:
+    model = AutoModelForSequenceClassification.from_pretrained(arg.la)
+  
 
   model.parameters
   model.to(device)
@@ -51,8 +63,9 @@ def train(arg):
   training_args = TrainingArguments(
     output_dir=arg.a,          # output directory
     save_total_limit=3,              # number of total save model.
-    save_steps=500,                 # model saving step.
-    num_train_epochs=4,              # total number of training epochs
+    # save_steps=500,                 # model saving step.
+    save_strategy='epoch',
+    num_train_epochs=arg.e,              # total number of training epochs
     learning_rate=5e-5,               # learning_rate
     per_device_train_batch_size=arg.b,  # batch size per device during training
     #per_device_eval_batch_size=16,   # batch size for evaluation
@@ -77,6 +90,7 @@ def train(arg):
   # train model
   trainer.train()
   trainer.save_model(arg.o)
+  trainer.save_state()
 
 
 def main(arg):
@@ -86,8 +100,12 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Set some train option')
   parser.add_argument('-a', default='./results', type=str, help='save ckpt address (default : ./results)')
   parser.add_argument('-o', default='./results/output', type=str, help='save ckpt address (default : ./results/output)')
+  parser.add_argument('-tm', default='n', type=str, help='train mode if you input "o", it will activate local model.')
+  parser.add_argument('-la', default=None, type=str, help='local mode model address')
   parser.add_argument('-b', default=16, type=int, help='batch size (default : 16)')
-  parser.add_argument('-m', default="bert-base-multilingual-cased", type=str, 
-                      help='model name (default : bert-base-multilingual-cased)')
+  parser.add_argument('-e', default=4, type=int, help='batch size (default : 4)')
+  parser.add_argument('-m', default="bert", type=str, 
+                      help='model name bert, electra (default : bert)'
+                      )
   arg = parser.parse_args()
   main(arg)

@@ -1,4 +1,9 @@
-from transformers import AutoTokenizer, BertForSequenceClassification, Trainer, TrainingArguments, BertConfig, BertTokenizer
+from transformers import AutoTokenizer,  Trainer, TrainingArguments, AutoModelForSequenceClassification
+
+# Bert 관련 함수
+from transformers import BertConfig, BertTokenizer, BertForSequenceClassification
+# electra 관련
+from transformers import ElectraForSequenceClassification, ElectraConfig
 from torch.utils.data import DataLoader
 from load_data import *
 import pandas as pd
@@ -7,6 +12,10 @@ import pickle as pickle
 import numpy as np
 import argparse
 from os import makedirs
+
+model_name_dict = {'bert' : "bert-base-multilingual-cased", 
+                  'electra1' : 'monologg/koelectra-base-v3-generator',
+                  'electra2' : 'monologg/koelectra-base-v3-discriminator'}
 
 def inference(model, tokenized_sent, device):
   dataloader = DataLoader(tokenized_sent, batch_size=40, shuffle=False)
@@ -41,12 +50,12 @@ def main(args):
   """
   device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
   # load tokenizer
-  TOK_NAME = "bert-base-multilingual-cased"  
+  TOK_NAME = model_name_dict[args.model_type]  
   tokenizer = AutoTokenizer.from_pretrained(TOK_NAME)
 
   # load my model
   MODEL_NAME = args.model_dir # model dir.
-  model = BertForSequenceClassification.from_pretrained(args.model_dir)
+  model = AutoModelForSequenceClassification.from_pretrained(args.model_dir)
   model.parameters
   model.to(device)
 
@@ -70,6 +79,7 @@ if __name__ == '__main__':
   
   # model dir
   parser.add_argument('--model_dir', type=str, required=True)
+  parser.add_argument('--model_type', type=str, required=True)
   args = parser.parse_args()
   print(args)
   main(args)
