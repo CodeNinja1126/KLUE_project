@@ -17,6 +17,7 @@ class RE_Dataset(torch.utils.data.Dataset):
   def __len__(self):
     return len(self.labels)
 
+
 # 처음 불러온 tsv 파일을 원하는 형태의 DataFrame으로 변경 시켜줍니다.
 # 변경한 DataFrame 형태는 baseline code description 이미지를 참고해주세요.
 def preprocessing_dataset(dataset, label_type):

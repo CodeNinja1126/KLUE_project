@@ -31,18 +31,23 @@ def train(arg):
   tokenizer = AutoTokenizer.from_pretrained(model_name_dict[arg.m])
 
   # load dataset
-  train_dataset = load_data("/opt/ml/input/data/train/train.tsv")
-  #dev_dataset = load_data("./dataset/train/dev.tsv")
+  if arg.train_data == 'val':
+    train_dataset = load_data("/opt/ml/input/data/train/new_train.tsv")
+  else:
+    train_dataset = load_data("/opt/ml/input/data/train/train.tsv")
+
+  dev_dataset = load_data("/opt/ml/input/data/train/val_train.tsv")
+  
   train_label = train_dataset['label'].values
-  #dev_label = dev_dataset['label'].values
+  dev_label = dev_dataset['label'].values
   
   # tokenizing dataset
   tokenized_train = tokenized_dataset(train_dataset, tokenizer)
-  #tokenized_dev = tokenized_dataset(dev_dataset, tokenizer)
+  tokenized_dev = tokenized_dataset(dev_dataset, tokenizer)
 
   # make dataset for pytorch.
   RE_train_dataset = RE_Dataset(tokenized_train, train_label)
-  #RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
+  RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
 
   device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -68,23 +73,23 @@ def train(arg):
     num_train_epochs=arg.e,              # total number of training epochs
     learning_rate=5e-5,               # learning_rate
     per_device_train_batch_size=arg.b,  # batch size per device during training
-    #per_device_eval_batch_size=16,   # batch size for evaluation
+    per_device_eval_batch_size=40,   # batch size for evaluation
     warmup_steps=500,                # number of warmup steps for learning rate scheduler
     weight_decay=0.01,               # strength of weight decay
     logging_dir='./logs',            # directory for storing logs
     logging_steps=100,              # log saving step.
-    #evaluation_strategy='steps', # evaluation strategy to adopt during training
+    evaluation_strategy='steps', # evaluation strategy to adopt during training
                                 # `no`: No evaluation during training.
                                 # `steps`: Evaluate every `eval_steps`.
                                 # `epoch`: Evaluate every end of epoch.
-    #eval_steps = 500,            # evaluation step.
+    eval_steps = 500,            # evaluation step.
   )
   trainer = Trainer(
     model=model,                         # the instantiated 🤗 Transformers model to be trained
     args=training_args,                  # training arguments, defined above
     train_dataset=RE_train_dataset,         # training dataset
-    #eval_dataset=RE_dev_dataset,             # evaluation dataset
-    #compute_metrics=compute_metrics         # define metrics function
+    eval_dataset=RE_dev_dataset,             # evaluation dataset
+    compute_metrics=compute_metrics         # define metrics function
   )
 
   # train model
@@ -103,7 +108,8 @@ if __name__ == '__main__':
   parser.add_argument('-tm', default='n', type=str, help='train mode if you input "o", it will activate local model.')
   parser.add_argument('-la', default=None, type=str, help='local mode model address')
   parser.add_argument('-b', default=16, type=int, help='batch size (default : 16)')
-  parser.add_argument('-e', default=4, type=int, help='batch size (default : 4)')
+  parser.add_argument('-e', default=4, type=int, help='epoch_num (default : 4)')
+  parser.add_argument('--train_data', default='val', help='which train data, val or whole train data (default : val)')
   parser.add_argument('-m', default="bert", type=str, 
                       help='model name bert, electra (default : bert)'
                       )

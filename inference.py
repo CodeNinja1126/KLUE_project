@@ -11,11 +11,15 @@ import torch
 import pickle as pickle
 import numpy as np
 import argparse
+from sklearn.metrics import accuracy_score
 from os import makedirs
 
 model_name_dict = {'bert' : "bert-base-multilingual-cased", 
                   'electra1' : 'monologg/koelectra-base-v3-generator',
                   'electra2' : 'monologg/koelectra-base-v3-discriminator'}
+
+inference_mode = {'val' : '/opt/ml/input/data/train/val_train.tsv',
+                  'test' : '/opt/ml/input/data/test/test.tsv'}
 
 def inference(model, tokenized_sent, device):
   dataloader = DataLoader(tokenized_sent, batch_size=40, shuffle=False)
@@ -60,7 +64,7 @@ def main(args):
   model.to(device)
 
   # load test datset
-  test_dataset_dir = "/opt/ml/input/data/test/test.tsv"
+  test_dataset_dir = inference_mode[args.inference_mode]
   test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer)
   test_dataset = RE_Dataset(test_dataset ,test_label)
 
@@ -69,10 +73,18 @@ def main(args):
   # make csv file with predicted answer
   # 아래 directory와 columns의 형태는 지켜주시기 바랍니다.
 
-  output = pd.DataFrame(pred_answer, columns=['pred'])
-  makedirs('prediction', exist_ok=True)
-    
-  output.to_csv('./prediction/submission.csv', index=False)
+  if args.inference_mode == 'test':
+    output = pd.DataFrame(pred_answer, columns=['pred'])
+    makedirs('prediction', exist_ok=True)
+    output.to_csv('./prediction/submission.csv', index=False)
+
+  else:
+    answer = []
+    for arr in pred_answer:
+      answer.extend(list(arr))
+    answer = np.array(answer)
+    acc = accuracy_score(test_label, answer) 
+    print(acc)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -80,6 +92,7 @@ if __name__ == '__main__':
   # model dir
   parser.add_argument('--model_dir', type=str, required=True)
   parser.add_argument('--model_type', type=str, required=True)
+  parser.add_argument('--inference_mode', type=str, required=True)
   args = parser.parse_args()
   print(args)
   main(args)
