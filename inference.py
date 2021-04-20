@@ -16,23 +16,24 @@ from os import makedirs
 
 model_name_dict = {'bert' : "bert-base-multilingual-cased", 
                   'electra1' : 'monologg/koelectra-base-v3-generator',
-                  'electra2' : 'monologg/koelectra-base-v3-discriminator'}
+                  'electra2' : 'monologg/koelectra-base-v3-discriminator',
+                  'roberta' : 'xlm-roberta-large'}
 
-inference_mode = {'val' : '/opt/ml/input/data/train/val_train.tsv',
-                  'test' : '/opt/ml/input/data/test/test.tsv'}
 
-def inference(model, tokenized_sent, device):
+def inference(model, tokenized_sent, device, args):
   dataloader = DataLoader(tokenized_sent, batch_size=40, shuffle=False)
   model.eval()
   output_pred = []
   
   for i, data in enumerate(dataloader):
     with torch.no_grad():
-      outputs = model(
-          input_ids=data['input_ids'].to(device),
-          attention_mask=data['attention_mask'].to(device),
-          token_type_ids=data['token_type_ids'].to(device)
-          )
+      if args.model_type == 'roberta':
+        outputs = model(
+        input_ids=data['input_ids'].to(device),
+        attention_mask=data['attention_mask'].to(device),
+        )
+      else:
+        outputs = model(**data)
     logits = outputs[0]
     logits = logits.detach().cpu().numpy()
     result = np.argmax(logits, axis=-1)
@@ -41,12 +42,14 @@ def inference(model, tokenized_sent, device):
   
   return np.array(output_pred).flatten()
 
+
 def load_test_dataset(dataset_dir, tokenizer):
   test_dataset = load_data(dataset_dir)
   test_label = test_dataset['label'].values
   # tokenizing dataset
   tokenized_test = tokenized_dataset(test_dataset, tokenizer)
   return tokenized_test, test_label
+
 
 def main(args):
   """
@@ -64,27 +67,19 @@ def main(args):
   model.to(device)
 
   # load test datset
-  test_dataset_dir = inference_mode[args.inference_mode]
+  test_dataset_dir = '/opt/ml/input/data/test/test.tsv'
   test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer)
   test_dataset = RE_Dataset(test_dataset ,test_label)
 
   # predict answer
-  pred_answer = inference(model, test_dataset, device)
+  pred_answer = inference(model, test_dataset, device, args)
   # make csv file with predicted answer
   # 아래 directory와 columns의 형태는 지켜주시기 바랍니다.
 
-  if args.inference_mode == 'test':
-    output = pd.DataFrame(pred_answer, columns=['pred'])
-    makedirs('prediction', exist_ok=True)
-    output.to_csv('./prediction/submission.csv', index=False)
-
-  else:
-    answer = []
-    for arr in pred_answer:
-      answer.extend(list(arr))
-    answer = np.array(answer)
-    acc = accuracy_score(test_label, answer) 
-    print(acc)
+  
+  output = pd.DataFrame(pred_answer, columns=['pred'])
+  makedirs('prediction', exist_ok=True)
+  output.to_csv('./prediction/submission.csv', index=False)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -92,7 +87,6 @@ if __name__ == '__main__':
   # model dir
   parser.add_argument('--model_dir', type=str, required=True)
   parser.add_argument('--model_type', type=str, required=True)
-  parser.add_argument('--inference_mode', type=str, required=True)
   args = parser.parse_args()
   print(args)
   main(args)

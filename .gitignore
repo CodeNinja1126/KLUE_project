@@ -3,3 +3,4 @@ results/
 .ipynb_checkpoints/
 .vscode/
 prediction/
+train.sh
