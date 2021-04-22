@@ -44,7 +44,8 @@ def inference(model, tokenized_sent, device, args):
 
 
 def load_test_dataset(dataset_dir, tokenizer):
-  test_dataset = load_data(dataset_dir)
+  # test_dataset = load_data(dataset_dir) # 일반 테스트 데이터셋
+  test_dataset = pd.read_csv(dataset_dir, sep='\t') # ner 테스트 데이터셋
   test_label = test_dataset['label'].values
   # tokenizing dataset
   tokenized_test = tokenized_dataset(test_dataset, tokenizer)
@@ -67,7 +68,8 @@ def main(args):
   model.to(device)
 
   # load test datset
-  test_dataset_dir = '/opt/ml/input/data/test/test.tsv'
+  # test_dataset_dir = '/opt/ml/input/data/test/test.tsv' # 일반 테스트 데이터셋
+  test_dataset_dir = '/opt/ml/input/data/test/ner_test_ver2.tsv' # ner 테스트 데이터셋
   test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer)
   test_dataset = RE_Dataset(test_dataset ,test_label)
 

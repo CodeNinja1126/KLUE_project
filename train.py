@@ -12,8 +12,7 @@ from load_data import *
 import argparse
 
 model_name_dict = {'bert' : "bert-base-multilingual-cased",
-                  'electra1' : 'monologg/koelectra-base-v3-generator',
-                  'electra2' : 'monologg/koelectra-base-v3-discriminator',
+                  'electra' : 'monologg/koelectra-base-v3-discriminator',
                   'roberta' : 'xlm-roberta-large',
                   'kobert' : 'monologg/kobert'}
 
@@ -35,10 +34,15 @@ def train(arg):
   # load dataset
   if arg.train_data == 'val':
     train_dataset = load_data("/opt/ml/input/data/train/new_train.tsv")
+  elif arg.train_data == 'ner':
+    train_dataset = pd.read_csv("/opt/ml/input/data/train/new_train_ner.tsv", sep='\t')
   else:
     train_dataset = load_data("/opt/ml/input/data/train/train.tsv")
 
-  dev_dataset = load_data("/opt/ml/input/data/train/val_train.tsv")
+  if arg.train_data == 'ner':
+    dev_dataset = pd.read_csv("/opt/ml/input/data/train/val_train_ner.tsv", sep='\t')
+  else:
+    dev_dataset = load_data("/opt/ml/input/data/train/val_train.tsv")
   
   train_label = train_dataset['label'].values
   dev_label = dev_dataset['label'].values
@@ -81,6 +85,9 @@ def train(arg):
                                 # `no`: No evaluation during training.
                                 # `steps`: Evaluate every `eval_steps`.
                                 # `epoch`: Evaluate every end of epoch.
+    # load_best_model_at_end=True,
+    # metric_for_best_model=compute_metrics,
+    # greater_is_better=True,
     eval_steps = 500,            # evaluation step.
   )
   trainer = Trainer(
