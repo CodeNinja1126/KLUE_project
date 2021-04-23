@@ -15,8 +15,7 @@ from sklearn.metrics import accuracy_score
 from os import makedirs
 
 model_name_dict = {'bert' : "bert-base-multilingual-cased", 
-                  'electra1' : 'monologg/koelectra-base-v3-generator',
-                  'electra2' : 'monologg/koelectra-base-v3-discriminator',
+                  'electra' : 'monologg/koelectra-base-v3-discriminator',
                   'roberta' : 'xlm-roberta-large'}
 
 
@@ -27,6 +26,7 @@ def inference(model, tokenized_sent, device, args):
   
   for i, data in enumerate(dataloader):
     with torch.no_grad():
+      # roberta 매개변수 변경
       if args.model_type == 'roberta':
         outputs = model(
         input_ids=data['input_ids'].to(device),
