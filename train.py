@@ -11,6 +11,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trai
 from load_data import *
 import argparse
 
+# 주요 huggingface model 정의 
 model_name_dict = {'bert' : "bert-base-multilingual-cased",
                   'electra' : 'monologg/koelectra-base-v3-discriminator',
                   'roberta' : 'xlm-roberta-large',
@@ -36,9 +37,10 @@ def train(arg):
     train_dataset = load_data("/opt/ml/input/data/train/new_train.tsv")
   elif arg.train_data == 'ner':
     train_dataset = pd.read_csv("/opt/ml/input/data/train/new_train_ner.tsv", sep='\t')
-  else:
+  elif arg.train_data == 'train':
     train_dataset = load_data("/opt/ml/input/data/train/train.tsv")
-
+  
+  # load validation set
   if arg.train_data == 'ner':
     dev_dataset = pd.read_csv("/opt/ml/input/data/train/val_train_ner.tsv", sep='\t')
   else:
@@ -114,9 +116,7 @@ if __name__ == '__main__':
   parser.add_argument('-o', default='./results/output', type=str, help='save ckpt address (default : ./results/output)')
   parser.add_argument('-b', default=16, type=int, help='batch size (default : 16)')
   parser.add_argument('-e', default=4, type=int, help='epoch_num (default : 4)')
-  parser.add_argument('--train_data', default='val', help='which train data, val or whole train data (default : val)')
-  parser.add_argument('-m', default="bert", type=str, 
-                      help='model name bert, electra (default : bert)'
-                      )
+  parser.add_argument('--train_data', default='val', help='training data (default : val)')
+  parser.add_argument('-m', default="bert", type=str, help='model name(default : bert)')
   arg = parser.parse_args()
   main(arg)
