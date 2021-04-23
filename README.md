@@ -1,4 +1,4 @@
-# KLUE_project
+# Relation_Extraction
 ## train.py
 각 모델을 학습시키는 코드입니다.
 ## inference.py
